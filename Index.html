@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <base target="_top">
+  <?!= include('CSS'); ?>
+</head>
+<body>
+  <div class="container">
+    <div class="logo-container">
+      <img src="https://raw.githubusercontent.com/arjungupta26012002/ExcelerateResources/refs/heads/main/uQLfqvsn_o.png" alt="Excelerate" class="logo">
+    </div>
+    <h1>Internship Submission Reminders</h1>
+
+    <div id="loading" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+        <p>Loading data...</p>
+    </div>
+
+    <form id="mailerForm" class="grid-form">
+      <div class="form-group">
+        <label for="internshipDropdown">Select Internship:</label>
+        <select id="internshipDropdown" class="form-control" required>
+          <option value="">Loading...</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="cohortDropdown">Select Cohort (Sheet Name):</label>
+        <select id="cohortDropdown" class="form-control" required disabled>
+          <option value="">Select an Internship first</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label for="deadline">Submission Deadline:</label>
+        <input type="date" id="deadline" class="form-control" required>
+      </div>
+
+      <div class="form-group">
+      <label for="status">Status:</label> <input type="text" id="status" class="form-control" readonly>
+      </div>
+
+      <div class="form-group full-width">
+        <label for="coordinatorMails">Coordinator Emails (comma-separated, for CC):</label>
+        <textarea id="coordinatorMails" class="form-control" rows="2" placeholder="e.g., coord1@example.com, coord2@example.com"></textarea>
+      </div>
+
+      <div class="form-group">
+        <label for="feedbackFormLink">Feedback Form Link:</label>
+        <input type="url" id="feedbackFormLink" class="form-control" placeholder="https://forms.gle/feedback">
+      </div>
+
+      <div class="form-group">
+        <label for="peerEvalFormLink">Peer Evaluation Form Link:</label>
+        <input type="url" id="peerEvalFormLink" class="form-control" placeholder="https://forms.gle/peer_eval">
+      </div>
+
+      <div class="form-group">
+        <label for="selfEvalFormLink">Self Evaluation Form Link:</label>
+        <input type="url" id="selfEvalFormLink" class="form-control" placeholder="https://forms.gle/self_eval">
+      </div>
+
+      <div class="form-group">
+        <label for="yourName">Your Name (for Signature):</label>
+        <input type="text" id="yourName" class="form-control" placeholder="Arjun Gupta" required>
+      </div>
+
+      <div class="button-group full-width">
+        <button type="button" id="sendSampleMailBtn" class="btn btn-secondary">
+          Send Preview Mail <span id="sampleMailSpinner" class="loading-spinner small hidden"></span>
+        </button>
+        <button type="button" id="sendMailsToInternsBtn" class="btn btn-primary" disabled>
+          Send Reminders to Interns <span id="internMailSpinner" class="loading-spinner small hidden"></span>
+        </button>
+      </div>
+    </form>
+
+    <div id="messageArea" class="message hidden"></div>
+  </div>
+
+  <div class="copyright">
+    <span>© 2025 Made with ❤️ by <a href="mailto:arjungupta26012002@gmail.com">Arjun Gupta</a></span>
+    <a href="https://www.linkedin.com/in/arjungupta26012002/" target="_blank" rel="noopener noreferrer" class="linkedin-link">
+      <img src="https://raw.githubusercontent.com/arjungupta26012002/ExcelerateResources/refs/heads/main/5AjJm1lz_o.gif" alt="Connect on LinkedIn" class="linkedin-icon">
+    </a>
+    <span class="separator">|</span>
+    <a href="https://forms.gle/EG2AKbv26KMwpr6i9" target="_blank" rel="noopener noreferrer" class="feedback-link">
+      Review/Report/Request
+    </a>
+  </div>
+
+  <?!= include('JavaScript'); ?>
+</body>
+</html>

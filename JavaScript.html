@@ -1,0 +1,272 @@
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+
+    const internshipDropdown = document.getElementById('internshipDropdown');
+    const cohortDropdown = document.getElementById('cohortDropdown');
+    const deadlineInput = document.getElementById('deadline');
+    const coordinatorMailsInput = document.getElementById('coordinatorMails');
+    const feedbackFormLinkInput = document.getElementById('feedbackFormLink');
+    const peerEvalFormLinkInput = document.getElementById('peerEvalFormLink');
+    const selfEvalFormLinkInput = document.getElementById('selfEvalFormLink');
+    const yourNameInput = document.getElementById('yourName');
+    const statusInput = document.getElementById('status');
+    const sendSampleMailBtn = document.getElementById('sendSampleMailBtn');
+    const sendMailsToInternsBtn = document.getElementById('sendMailsToInternsBtn');
+    const messageArea = document.getElementById('messageArea');
+    const loadingOverlay = document.getElementById('loading');
+    const sampleMailSpinner = document.getElementById('sampleMailSpinner');
+
+    const internMailSpinner = document.getElementById('internMailSpinner');
+    const mailerForm = document.getElementById('mailerForm');
+
+    function showLoading(show) {
+      if (show) {
+        loadingOverlay.classList.remove('hidden');
+      } else {
+        loadingOverlay.classList.add('hidden');
+      }
+    }
+
+    function showMessage(msg, type = 'success') {
+      messageArea.textContent = msg;
+      messageArea.className = `message ${type}`; 
+      messageArea.classList.remove('hidden');
+    }
+
+    function hideMessage() { 
+      messageArea.classList.add('hidden');
+      messageArea.textContent = ''; 
+    }
+
+    function updateStatus(msg, type = 'info') {
+      statusInput.value = msg;
+
+      statusInput.classList.remove('info-status', 'success-status', 'error-status');
+      statusInput.classList.add(`${type}-status`);
+    }
+
+    function validateFormInputs() {
+      const isInternshipSelected = internshipDropdown.value !== '';
+      const isCohortSelected = cohortDropdown.value !== '';
+      const isDeadlineFilled = deadlineInput.value !== '';
+      const isYourNameFilled = yourNameInput.value.trim() !== '';
+
+      return isInternshipSelected && isCohortSelected && isDeadlineFilled && isYourNameFilled;
+    }
+
+    function updateSendSampleMailButtonState() {
+      const formInputsReady = validateFormInputs();
+      const sheetValidatedSuccessfully = statusInput.classList.contains('success-status');
+
+      sendSampleMailBtn.disabled = !(formInputsReady && sheetValidatedSuccessfully);
+
+    }
+
+    function getFormOptions() {
+      return {
+        internshipId: internshipDropdown.value,
+        internshipName: internshipDropdown.options[internshipDropdown.selectedIndex].textContent,
+        cohortName: cohortDropdown.value,
+        deadline: deadlineInput.value,
+        coordinatorMails: coordinatorMailsInput.value,
+        feedbackFormLink: feedbackFormLinkInput.value,
+        peerEvalFormLink: peerEvalFormLinkInput.value,
+        selfEvalFormLink: selfEvalFormLinkInput.value,
+        yourName: yourNameInput.value
+      };
+    }
+
+    sendSampleMailBtn.disabled = true;
+    sendMailsToInternsBtn.disabled = true;
+
+    const today = new Date();
+    const yyyy = today.getFullYear();
+    const mm = String(today.getMonth() + 1).padStart(2, '0'); 
+    const dd = String(today.getDate()).padStart(2, '0');
+    deadlineInput.value = `${yyyy}-${mm}-${dd}`;
+
+    hideMessage(); 
+    updateStatus('Loading internships...');
+    showLoading(true);
+    google.script.run
+      .withSuccessHandler(function(list) {
+        internshipDropdown.innerHTML = '<option value="">Select an Internship</option>';
+        list.forEach(item => {
+          const option = document.createElement('option');
+          option.value = item.id;
+          option.textContent = item.name;
+          internshipDropdown.appendChild(option);
+        });
+        showLoading(false);
+        updateStatus('Internships loaded successfully.');
+        updateSendSampleMailButtonState(); 
+      })
+      .withFailureHandler(function(error) {
+        showMessage(`Error loading internships: ${error.message}`, 'error');
+        showLoading(false);
+        updateStatus('Error loading internships!', 'error');
+        internshipDropdown.innerHTML = '<option value="">Error loading</option>';
+        updateSendSampleMailButtonState(); 
+      })
+      .getInternshipList();
+
+    internshipDropdown.addEventListener('change', function() {
+      const internshipId = this.value;
+      cohortDropdown.innerHTML = '<option value="">Loading cohorts...</option>';
+      cohortDropdown.disabled = true;
+      sendSampleMailBtn.disabled = true; 
+      sendMailsToInternsBtn.disabled = true; 
+      hideMessage();
+      updateStatus('');
+
+      if (internshipId) {
+        updateStatus('Loading cohorts for selected internship...');
+        showLoading(true);
+        google.script.run
+          .withSuccessHandler(function(list) {
+            cohortDropdown.innerHTML = '<option value="">Select a Cohort</option>';
+            list.forEach(name => {
+              const option = document.createElement('option');
+              option.value = name;
+              option.textContent = name;
+              cohortDropdown.appendChild(option);
+            });
+            cohortDropdown.disabled = false;
+            showLoading(false);
+            updateStatus('Cohorts loaded. Please select a cohort to validate.');
+            updateSendSampleMailButtonState(); 
+          })
+          .withFailureHandler(function(error) {
+            showMessage(`Error loading cohorts: ${error.message}`, 'error');
+            showLoading(false);
+            updateStatus('Error loading cohorts!', 'error');
+            cohortDropdown.innerHTML = '<option value="">Error loading</option>';
+            updateSendSampleMailButtonState(); 
+          })
+          .getCohortList(internshipId);
+      } else {
+        cohortDropdown.innerHTML = '<option value="">Select an Internship first</option>';
+        updateStatus('No internship selected.');
+        updateSendSampleMailButtonState(); 
+      }
+    });
+
+    cohortDropdown.addEventListener('change', function() {
+      hideMessage();
+      const internshipId = internshipDropdown.value;
+      const cohortName = this.value;
+
+      sendSampleMailBtn.disabled = true; 
+      sendMailsToInternsBtn.disabled = true; 
+
+      if (cohortName && internshipId) {
+        updateStatus(`Selected cohort: ${cohortName}. Validating sheet headers...`);
+        showLoading(true);
+
+        google.script.run
+          .withSuccessHandler(function(validationResult) {
+            showLoading(false);
+            if (validationResult.success) {
+              updateStatus(`Validation SUCCESS: ${validationResult.message}`, 'success');
+            } else {
+              updateStatus(`Validation FAILED: ${validationResult.message}`, 'error');
+              showMessage(`Critical Error: ${validationResult.message}`, 'error');
+            }
+            updateSendSampleMailButtonState(); 
+          })
+          .withFailureHandler(function(error) {
+            showLoading(false);
+            showMessage(`Error during sheet validation: ${error.message}`, 'error');
+            updateStatus(`Error validating sheet: ${error.message}`, 'error');
+            updateSendSampleMailButtonState(); 
+          })
+          .validateCohortSheetHeaders(internshipId, cohortName); 
+      } else {
+        updateStatus('Select a cohort.');
+        updateSendSampleMailButtonState(); 
+      }
+    });
+
+    deadlineInput.addEventListener('input', updateSendSampleMailButtonState);
+    yourNameInput.addEventListener('input', updateSendSampleMailButtonState);
+
+    updateSendSampleMailButtonState();
+
+    sendSampleMailBtn.addEventListener('click', function() {
+      if (!validateFormInputs()) {
+        showMessage('Please fill in all required fields (internship, cohort, deadline, and your name).', 'error');
+        mailerForm.reportValidity();
+        return;
+      }
+      if (!statusInput.classList.contains('success-status')) {
+          showMessage('Sheet headers have not been successfully validated. Please re-select cohort or fix sheet.', 'error');
+          return;
+      }
+
+      hideMessage();
+      sendSampleMailBtn.disabled = true;
+      sampleMailSpinner.classList.remove('hidden');
+      updateStatus('Sending preview mail...');
+
+      const options = getFormOptions();
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          showMessage(response, 'success');
+          sendSampleMailBtn.disabled = false;
+          sampleMailSpinner.classList.add('hidden');
+          updateStatus('Preview mail sent successfully!');
+
+          sendMailsToInternsBtn.disabled = false; 
+        })
+        .withFailureHandler(function(error) {
+          showMessage(`Error sending preview mail: ${error.message}`, 'error');
+          sendSampleMailBtn.disabled = false;
+          sampleMailSpinner.classList.add('hidden');
+          updateStatus('Error sending preview mail!', 'error');
+          sendMailsToInternsBtn.disabled = true;
+        })
+        .sendPreviewToCoordinators(options);
+    });
+
+    sendMailsToInternsBtn.addEventListener('click', function() {
+      if (!validateFormInputs()) {
+        showMessage('Please fill in all required fields (internship, cohort, deadline, and your name).', 'error');
+        mailerForm.reportValidity();
+        return;
+      }
+
+      hideMessage();
+      sendMailsToInternsBtn.disabled = true;
+      internMailSpinner.classList.remove('hidden');
+      updateStatus('Preparing to send reminders to interns...');
+
+      const options = getFormOptions();
+
+      if (!confirm('Are you sure you want to send reminder emails to ALL interns in the selected cohort with pending submissions? This action cannot be undone.')) {
+        sendMailsToInternsBtn.disabled = false;
+        internMailSpinner.classList.add('hidden');
+        showMessage('Email sending cancelled by user.', 'info');
+        updateStatus('Mail sending cancelled.', 'info');
+        return;
+      }
+
+      updateStatus('Sending reminders to interns (this may take a while)...');
+
+      google.script.run
+        .withSuccessHandler(function(response) {
+          showMessage(`Operation complete: ${response.sentCount} emails sent, ${response.skippedCount} interns skipped. Check logs for details.`, 'success');
+          sendMailsToInternsBtn.disabled = false;
+          internMailSpinner.classList.add('hidden');
+          updateStatus('Reminders sent successfully!', 'success');
+        })
+        .withFailureHandler(function(error) {
+          showMessage(`Error sending mails to interns: ${error.message}`, 'error');
+          sendMailsToInternsBtn.disabled = false;
+          internMailSpinner.classList.add('hidden');
+          updateStatus('Error sending reminders!', 'error');
+        })
+        .sendMailsToInterns(options);
+    });
+  }); 
+</script>
